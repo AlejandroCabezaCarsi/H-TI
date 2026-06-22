@@ -1,62 +1,201 @@
-<<<<<<< HEAD
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+﻿# Live Poll API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend API for a small live voting/poll application. The frontend is intentionally kept separate and can consume this API from another local project.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3+
+- Laravel 13
+- SQLite by default for local development
+- PHPUnit for feature tests
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The poll feature follows a clear Laravel application structure:
 
-## Learning Laravel
+- `routes/api.php`: public REST API routes.
+- `app/Http/Requests/Polls`: request validation and input normalization.
+- `app/Http/Controllers/Api`: thin controllers that coordinate requests, actions, and queries.
+- `app/Actions/Polls`: write use cases such as creating polls and casting votes.
+- `app/Queries/Polls`: read/query response shaping for voting and result views.
+- `app/Models`: Eloquent models with constants for table and column names used across migrations and code.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Local Setup
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Install dependencies:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Create the environment file:
 
-## Contributing
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+For SQLite local development, create the database file if it does not exist:
 
-## Code of Conduct
+```bash
+touch database/database.sqlite
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+On Windows PowerShell:
 
-## Security Vulnerabilities
+```powershell
+New-Item database/database.sqlite -ItemType File -Force
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Run migrations:
 
-## License
+```bash
+php artisan migrate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-=======
-# H-TI
->>>>>>> fa5f2deae7d06ac1eee29e3d3ab5a5a08b25a3f7
+Start the API server:
+
+```bash
+php artisan serve
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000/api
+```
+
+## Frontend CORS
+
+For a separate frontend project, configure allowed origins in `.env`:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+```
+
+Multiple origins can be comma-separated.
+
+## API Endpoints
+
+### Create Poll
+
+```http
+POST /api/polls
+```
+
+Request:
+
+```json
+{
+  "question": "Where should we have lunch?",
+  "options": ["Pizza", "Sushi", "Burgers"]
+}
+```
+
+Response: `201 Created`
+
+```json
+{
+  "data": {
+    "id": "01J...",
+    "question": "Where should we have lunch?",
+    "options": [
+      { "id": "01J...", "text": "Pizza" }
+    ]
+  }
+}
+```
+
+### Get Poll For Voting
+
+```http
+GET /api/polls/{poll}
+```
+
+Returns the poll question and answer options.
+
+### Cast Vote
+
+```http
+POST /api/polls/{poll}/votes
+```
+
+Request:
+
+```json
+{
+  "poll_option_id": "01J..."
+}
+```
+
+Response: `201 Created`, with the updated results payload.
+
+### Get Results
+
+```http
+GET /api/polls/{poll}/results
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "id": "01J...",
+    "question": "Where should we have lunch?",
+    "total_votes": 1,
+    "options": [
+      {
+        "id": "01J...",
+        "text": "Pizza",
+        "votes_count": 1,
+        "percentage": 100
+      }
+    ]
+  }
+}
+```
+
+## Data Model
+
+- `polls`: stores the poll question.
+- `poll_options`: stores 2-5 options per poll.
+- `votes`: stores each vote event, linked to both poll and option.
+
+The app stores votes as rows instead of incrementing counters directly. This keeps an auditable vote history and lets result counts be derived with queries.
+
+## Validation
+
+Poll creation validates:
+
+- question is required, string, 5-255 characters
+- options is required, array, 2-5 items
+- each option is required, string, unique, max 120 characters
+
+Vote creation validates:
+
+- `poll_option_id` is required and must be a ULID
+- selected option must belong to the poll being voted on
+
+## Tests
+
+Run the test suite:
+
+```bash
+php artisan test
+```
+
+Current coverage includes the main API flow:
+
+- create poll
+- fetch poll for voting
+- cast vote
+- fetch results
+- reject voting with an option from a different poll
+
+## Trade-offs
+
+- No authentication, per challenge requirements.
+- Duplicate vote prevention is not implemented yet. A frontend can store a local flag, but robust prevention would need identity, sessions, signed links, or rate limiting.
+- Results can be live-updated by the separate frontend with polling against `GET /api/polls/{poll}/results`.
+- SQLite is enough for local development. For production or heavier concurrency, PostgreSQL plus transactional writes and indexes would be the next step.
